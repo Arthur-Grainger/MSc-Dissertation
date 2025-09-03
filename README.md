@@ -6,7 +6,9 @@ Before running the code, update `BASE_DIR = r"C:\Path\To\Your\Project"` to your 
 - For Part 2, use your project path directly.  
 - For subsequent parts, append `\Final Dataset` to the path.  
 
-The repository includes the study’s scraped Google Trends data (10 `Automated GT Data #` folders). However, for independent analysis it is recommended to run `Part1 - Scraping GT Data.py` to generate your own dataset.  
+The repository includes the study’s scraped Google Trends data (10 `Automated GT Data #` folders). However, for independent analysis it is recommended to run `Part1 - Scraping GT Data.py` to generate your own dataset.
+
+**Note:** Running the code may take a considerable amount of time depending on your system specifications and internet connection speed.
 
 The code was developed and tested in Spyder using Python 3.12.7, a scientific Python development environment.  
 
