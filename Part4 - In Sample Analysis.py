@@ -51,7 +51,7 @@ def analyze_dependent_variable_variation(df, target_var):
         print(f"   Warning: Target variable '{target_var}' not found. Skipping analysis.")
         return
 
-    # Define economic periods based on dissertation structure
+    # Define economic periods
     periods = {
         'Pre-Recession': ('2004-01-01', '2007-11-30'),
         'Great Recession': ('2007-12-01', '2009-06-30'),
@@ -583,7 +583,7 @@ def format_variable_name_latex(var_name, is_traditional):
 
     asterisk = '^*' if is_traditional else ''
     
-    # Build the LaTeX formatted string step by step to avoid escaping issues
+    # Build the LaTeX formatted string 
     texttt_part = f'\\texttt{{{var_name}}}'
     return f'${prefix}{texttt_part}{subscript}{asterisk}$'
 
@@ -750,13 +750,6 @@ def plot_coefficient_evolution(coeff_data, variables_to_plot, window_dates, meta
 def run_complete_analysis(BASE_DIR, input_filename, run_estimation=True, run_spreadsheet=True, run_visualizations=True):
     """
     Main function to run the complete analysis pipeline.
-    
-    Parameters:
-    - BASE_DIR: Path to the data directory
-    - input_filename: Name of the input Excel file
-    - run_estimation: Whether to run the model estimation (Part 1)
-    - run_spreadsheet: Whether to generate the Excel spreadsheet (Part 2)
-    - run_visualizations: Whether to generate the visualizations (Part 3)
     """
     print("="*80)
     print("COMPLETE MULTI-MODEL ANALYSIS PIPELINE")
@@ -769,14 +762,14 @@ def run_complete_analysis(BASE_DIR, input_filename, run_estimation=True, run_spr
     input_file = input_filename
     results_file = 'final_in_sample_results.pkl'
     excel_output_dir = os.path.join(BASE_DIR, '3 model approach')
-    viz_output_dir = os.path.join(BASE_DIR, '3 model approach', 'in_sample_visualisations', 'ElasticNet')
+    plots_dir = os.path.join(BASE_DIR, 'plots')  
     
     # Create output directories
-    for path in [excel_output_dir, viz_output_dir]:
+    for path in [excel_output_dir, plots_dir]:
         if not os.path.exists(path):
             os.makedirs(path)
             print(f"Created output directory: {path}")
-    
+            
     results = None
     metadata = None
     
@@ -833,59 +826,92 @@ def run_complete_analysis(BASE_DIR, input_filename, run_estimation=True, run_spr
         save_to_excel(all_dfs, filename=excel_output_path)
         print(" Spreadsheet generation complete!")
     
-    # PART 3: VISUALIZATIONS
     if run_visualizations and results is not None:
         print("\n" + "="*80)
         print("PART 3: VISUALIZATIONS")
         print("="*80)
-        
-        # Create subdirectories for visualizations
-        full_model_dir = os.path.join(viz_output_dir, 'Full_Model_Coeff_Evolution')
-        argt_model_dir = os.path.join(viz_output_dir, 'AR_GT_Model_Coeff_Evolution')
-        benchmark_model_dir = os.path.join(viz_output_dir, 'Benchmark_Model_Coeff_Evolution')
-        
-        for path in [full_model_dir, argt_model_dir, benchmark_model_dir]:
-            if not os.path.exists(path):
-                os.makedirs(path)
-        
-        # Extract data for visualizations
-        ranked_variables = get_top_variables_by_model(results, metadata)
-        shrunken_coeffs, ols_coeffs, window_dates = extract_coefficient_evolution(results, metadata)
-        
-        # Generate all visualizations
-        print("\nGenerating variable selection evolution plot...")
-        plot_variable_selection_evolution(results, window_dates, viz_output_dir)
-        
-        print("\nGenerating variable importance plots...")
-        plot_single_model_importance(results, metadata, viz_output_dir, model_key='ar_gt', model_display_name='AR+GT', top_n=15)
-        plot_single_model_importance(results, metadata, viz_output_dir, model_key='full', model_display_name='Full', top_n=15)
-        
-        print("\nGenerating coefficient evolution plots...")
-        # Full model coefficient evolution plots
-        full_model_ranked_vars = ranked_variables.get('full', [])
-        chunk_size = 8 
-        for i in range(0, len(full_model_ranked_vars), chunk_size):
-            variable_chunk = full_model_ranked_vars[i:i + chunk_size]
-            start_rank, end_rank = i + 1, i + len(variable_chunk)
-            plot_coefficient_evolution(shrunken_coeffs['full'], variable_chunk, window_dates, metadata, full_model_dir, model_name='Full_Model', filename_suffix=f'Ranks_{start_rank}-{end_rank}_Shrunken', figure_title=f'Evolution of Shrunken Full ElasticNet Coefficients (Ranks {start_rank}-{end_rank})', rank_start=start_rank)
-            plot_coefficient_evolution(ols_coeffs['full'], variable_chunk, window_dates, metadata, full_model_dir, model_name='Full_Model', filename_suffix=f'Ranks_{start_rank}-{end_rank}_OLS', figure_title=f'Evolution of Post-ElasticNet OLS Full Model Coefficients (Ranks {start_rank}-{end_rank})', rank_start=start_rank)
-
-        # AR+GT model coefficient evolution plots
-        argt_model_ranked_vars = ranked_variables.get('ar_gt', [])
-        for i in range(0, len(argt_model_ranked_vars), chunk_size):
-            variable_chunk = argt_model_ranked_vars[i:i+chunk_size]
-            start_rank, end_rank = i + 1, i + len(variable_chunk)
-            plot_coefficient_evolution(shrunken_coeffs['ar_gt'], variable_chunk, window_dates, metadata, argt_model_dir, model_name='AR_GT_Model', filename_suffix=f'Ranks_{start_rank}-{end_rank}_Shrunken', figure_title=f'Evolution of Shrunken AR+GT ElasticNet Coefficients (Ranks {start_rank}-{end_rank})', rank_start=start_rank)
-            plot_coefficient_evolution(ols_coeffs['ar_gt'], variable_chunk, window_dates, metadata, argt_model_dir, model_name='AR_GT_Model', filename_suffix=f'Ranks_{start_rank}-{end_rank}_OLS', figure_title=f'Evolution of Post-ElasticNet OLS AR+GT Model Coefficients (Ranks {start_rank}-{end_rank})', rank_start=start_rank)
-
-        # Benchmark model coefficient evolution plots
-        benchmark_ranked_vars = ranked_variables.get('benchmark', [])
-        if benchmark_ranked_vars:
-            plot_coefficient_evolution(shrunken_coeffs['benchmark'], benchmark_ranked_vars[:8], window_dates, metadata, benchmark_model_dir, model_name='Benchmark_Model', filename_suffix='Top_8_Shrunken', figure_title='Evolution of Top 8 Shrunken Benchmark Coefficients', rank_start=1)
-            plot_coefficient_evolution(ols_coeffs['benchmark'], benchmark_ranked_vars[:8], window_dates, metadata, benchmark_model_dir, model_name='Benchmark_Model', filename_suffix='Top_8_OLS', figure_title='Evolution of Top 8 Post-Lasso OLS Benchmark Coefficients', rank_start=1)
-        
-        print(" Visualization generation complete!")
     
+    # Extract data for visualizations
+    ranked_variables = get_top_variables_by_model(results, metadata)
+    shrunken_coeffs, ols_coeffs, window_dates = extract_coefficient_evolution(results, metadata)
+    
+    # Generate all visualizations
+    print("\nGenerating variable selection evolution plot...")
+    plot_variable_selection_evolution(results, window_dates, plots_dir)
+    
+    print("\nGenerating variable importance plots...")
+    plot_single_model_importance(results, metadata, plots_dir, model_key='ar_gt', model_display_name='AR+GT', top_n=15)
+    plot_single_model_importance(results, metadata, plots_dir, model_key='full', model_display_name='Full', top_n=15)
+    
+    print("\nGenerating coefficient evolution plots...")
+    
+    # Full model coefficient evolution plots
+    full_model_ranked_vars = ranked_variables.get('full', [])
+    chunk_size = 8 
+    for i in range(0, len(full_model_ranked_vars), chunk_size):
+        variable_chunk = full_model_ranked_vars[i:i + chunk_size]
+        start_rank, end_rank = i + 1, i + len(variable_chunk)
+        
+        plot_coefficient_evolution(
+            shrunken_coeffs['full'], variable_chunk, window_dates, metadata, 
+            plots_dir, model_name='Full_Model', 
+            filename_suffix=f'Ranks_{start_rank}-{end_rank}_Shrunken', 
+            figure_title=f'Evolution of Shrunken Full ElasticNet Coefficients (Ranks {start_rank}-{end_rank})', 
+            rank_start=start_rank
+        )
+        
+        plot_coefficient_evolution(
+            ols_coeffs['full'], variable_chunk, window_dates, metadata, 
+            plots_dir, model_name='Full_Model', 
+            filename_suffix=f'Ranks_{start_rank}-{end_rank}_OLS', 
+            figure_title=f'Evolution of Post-ElasticNet OLS Full Model Coefficients (Ranks {start_rank}-{end_rank})', 
+            rank_start=start_rank
+        )
+
+    # AR+GT model coefficient evolution plots
+    argt_model_ranked_vars = ranked_variables.get('ar_gt', [])
+    for i in range(0, len(argt_model_ranked_vars), chunk_size):
+        variable_chunk = argt_model_ranked_vars[i:i+chunk_size]
+        start_rank, end_rank = i + 1, i + len(variable_chunk)
+        
+        plot_coefficient_evolution(
+            shrunken_coeffs['ar_gt'], variable_chunk, window_dates, metadata, 
+            plots_dir, model_name='AR_GT_Model', 
+            filename_suffix=f'Ranks_{start_rank}-{end_rank}_Shrunken', 
+            figure_title=f'Evolution of Shrunken AR+GT ElasticNet Coefficients (Ranks {start_rank}-{end_rank})', 
+            rank_start=start_rank
+        )
+        
+        plot_coefficient_evolution(
+            ols_coeffs['ar_gt'], variable_chunk, window_dates, metadata, 
+            plots_dir, model_name='AR_GT_Model', 
+            filename_suffix=f'Ranks_{start_rank}-{end_rank}_OLS', 
+            figure_title=f'Evolution of Post-ElasticNet OLS AR+GT Model Coefficients (Ranks {start_rank}-{end_rank})', 
+            rank_start=start_rank
+        )
+
+    # Benchmark model coefficient evolution plots
+    benchmark_ranked_vars = ranked_variables.get('benchmark', [])
+    if benchmark_ranked_vars:
+        plot_coefficient_evolution(
+            shrunken_coeffs['benchmark'], benchmark_ranked_vars[:8], window_dates, metadata, 
+            plots_dir, model_name='Benchmark_Model', 
+            filename_suffix='Top_8_Shrunken', 
+            figure_title='Evolution of Top 8 Shrunken Benchmark Coefficients', 
+            rank_start=1
+        )
+        
+        plot_coefficient_evolution(
+            ols_coeffs['benchmark'], benchmark_ranked_vars[:8], window_dates, metadata, 
+            plots_dir, model_name='Benchmark_Model', 
+            filename_suffix='Top_8_OLS', 
+            figure_title='Evolution of Top 8 Post-Lasso OLS Benchmark Coefficients', 
+            rank_start=1
+        )
+    
+    print(" Visualization generation complete!")
+    
+    # Update the final print statement
     print("\n" + "="*80)
     print("COMPLETE ANALYSIS PIPELINE FINISHED!")
     print("="*80)
@@ -895,7 +921,7 @@ def run_complete_analysis(BASE_DIR, input_filename, run_estimation=True, run_spr
     if run_spreadsheet:
         print(f" Excel spreadsheet saved to: {excel_output_dir}")
     if run_visualizations:
-        print(f" Visualizations saved to: {viz_output_dir}")
+        print(f" Visualizations saved to: {plots_dir}")  # Updated message
     
     return results
 
