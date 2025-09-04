@@ -761,8 +761,8 @@ def run_complete_analysis(BASE_DIR, input_filename, run_estimation=True, run_spr
     # Define file paths
     input_file = input_filename
     results_file = 'final_in_sample_results.pkl'
-    excel_output_dir = os.path.join(BASE_DIR, '3 model approach')
-    plots_dir = os.path.join(BASE_DIR, 'plots')  
+    excel_output_dir = os.path.join(BASE_DIR, 'in-sample')
+    plots_dir = os.path.join(excel_output_dir, 'in_sample_visualisations')  
     
     # Create output directories
     for path in [excel_output_dir, plots_dir]:

@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
-
 from sklearn.linear_model import LassoCV, Lasso, ElasticNetCV, ElasticNet
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.preprocessing import StandardScaler
@@ -16,7 +15,9 @@ warnings.filterwarnings('ignore')
 # ==== CHANGE THIS TO YOUR OWN DIRECTORY ====
 BASE_DIR = r"C:\Path\To\Your\Project"
 
-# %% PART 1: ESTIMATION (from part5a)
+excel_output_dir = os.path.join(BASE_DIR, 'out-of-sample')
+
+# %% PART 1: ESTIMATION
 
 # Load and Prepare Data
 
@@ -352,8 +353,6 @@ def compare_forecast_accuracy(forecasts_df):
                 errors_model = actual[mask] - pred_model[mask]
                 errors_baseline = actual[mask] - pred_baseline[mask]
                 
-                # Note: DM test assumes errors1 (baseline) is being tested against errors2 (model)
-                # A positive DM stat means the second model's errors are smaller (i.e., it's better)
                 dm_stat, p_value = diebold_mariano_test(errors_baseline, errors_model)
                 
                 comparisons[f'{model}_vs_{baseline}'] = {
@@ -384,7 +383,6 @@ def run_single_horizon_analysis(df, windows, target_var,
         forecast_data = df.iloc[window['forecast_idx']:window['forecast_idx']+1].copy()
         
         try:
-            # MODIFIED: Optimize parameters on the most complex model (predictors_all).
             X_train_for_optim = train_data[predictors_all]
             y_train = train_data[target_var]
             
@@ -614,7 +612,7 @@ def main_multi_horizon_analysis(filename, forecast_horizons=[1, 3, 6, 12], train
 # Execute Multi-Horizon Analysis
 
 if __name__ == "__main__":
-    horizons = [1, 3, 6, 12] # Example: 1 and 3 months ahead
+    horizons = [1, 3, 6, 12]
     
     print("3-MODEL MULTI-HORIZON UNEMPLOYMENT FORECASTING ANALYSIS")
     print("="*80)
@@ -633,14 +631,14 @@ if __name__ == "__main__":
     else:
         print("\n Analysis failed!") 
 
-# %% PART 2: SPREADSHEET CREATION (from part5b)
+# %% PART 2: SPREADSHEET CREATION
 
 # Load Results
 
 def load_results(filename='final_out_of_sample_3_model_results.pkl'):
     """Loads the 3-model out-of-sample analysis results."""
     print(f"Loading results from '{filename}'...")
-    os.chdir(r"C:\Users\arthu\OneDrive - University of Surrey\Documents\Surrey\Semester 2\Dissertation\Data\Final Dataset")
+    os.chdir(BASE_DIR)
     if not os.path.exists(filename):
         raise FileNotFoundError(f"File not found: {filename}. Please run the out-of-sample estimation script first.")
     with open(filename, 'rb') as f:
@@ -687,7 +685,7 @@ def create_performance_summary(horizon_results, full_forecasts_df):
         for key, name in model_names.items():
             row[f'{name} RMSE'] = metrics.get(key, {}).get('rmse')
             row[f'{name} MAE'] = metrics.get(key, {}).get('mae')
-            # NEW: Add the final CSFE value
+            # Add the final CSFE value
             csfe_col = f'csfe_{key}'
             if not horizon_forecasts.empty and csfe_col in horizon_forecasts.columns:
                 # The final CSFE is the max value for that horizon
@@ -711,7 +709,7 @@ def create_performance_summary(horizon_results, full_forecasts_df):
     if not df.empty:
         cols = ['Horizon']
         for name in model_names.values():
-            # NEW: Added CSFE to the column list
+            # Added CSFE to the column list
             cols.extend([f'{name} RMSE', f'{name} MAE', f'{name} CSFE'])
         for name in model_names.values():
             if name != 'Benchmark (AR)':
@@ -748,10 +746,10 @@ def create_full_forecast_sheet(horizon_results):
             df[f'error_{key}'] = df['y_actual'] - df[forecast_col]
             df[f'sq_error_{key}'] = df[f'error_{key}']**2 # Calculate squared error
             
-    # Calculate Cumulative Squared Forecast Error (CSFE) for each model
+    # Calculate CSFE for each model
     for key in model_keys:
         sq_error_col = f'sq_error_{key}'
-        csfe_col = f'csfe_{key}' # Cumulative Squared Forecast Error column
+        csfe_col = f'csfe_{key}'
         if sq_error_col in df.columns:
             df[csfe_col] = df.groupby('horizon')[sq_error_col].cumsum()
             
@@ -761,7 +759,7 @@ def create_variable_selection_summary(horizon_results, metadata):
     """Analyzes the frequency of variable selection for each model and horizon."""
     summary_list = []
     
-    # Models that perform variable selection
+    # GT Models that perform variable selection
     selectable_models = {
         'ar_gt_lasso': 'AR+GT (LASSO)',
         'ar_gt_elasticnet': 'AR+GT (ElasticNet)',
@@ -809,7 +807,18 @@ def main_spreadsheet(results_file, output_file):
     print("GENERATING SPREADSHEET FROM 3-MODEL OUT-OF-SAMPLE ANALYSIS")
     print("=" * 60)
     try:
-        horizon_results, metadata = load_results(results_file)
+        # Use the correct load_results function from PART 2
+        os.chdir(BASE_DIR)
+        if not os.path.exists(results_file):
+            raise FileNotFoundError(f"File not found: {results_file}. Please run the out-of-sample estimation script first.")
+        
+        with open(results_file, 'rb') as f:
+            data = pickle.load(f)
+        
+        horizon_results = data.get('horizon_results', {})
+        metadata = data.get('metadata', {})
+        print(" Results loaded.")
+        
         print("Creating analysis summaries...")
         full_forecasts_df = create_full_forecast_sheet(horizon_results)
         performance_df = create_performance_summary(horizon_results, full_forecasts_df)
@@ -817,7 +826,7 @@ def main_spreadsheet(results_file, output_file):
         print(" Summaries created.")
 
         print(f"Saving analysis to Excel file: '{output_file}'...")
-        os.chdir(r"C:\\Users\\arthu\\OneDrive - University of Surrey\\Documents\\Surrey\\Semester 2\\Dissertation\\Data\\Final Dataset\\3 model approach")
+        os.chdir(excel_output_dir) 
         with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
             performance_df.to_excel(writer, sheet_name='Performance_Summary', index=False)
             variable_selection_df.to_excel(writer, sheet_name='Variable_Selection', index=False)
@@ -831,8 +840,8 @@ def main_spreadsheet(results_file, output_file):
         print(f"\n  An error occurred: {str(e)}")
         import traceback
         traceback.print_exc()
-
-# %% PART 3: VISUALISATIONS (from part5c)
+        
+# %% PART 3: VISUALISATIONS
 
 # Core Function Definitions
 
@@ -1130,10 +1139,9 @@ def main_visualisations():
     except RuntimeError:
         print("Warning: LaTeX distribution not found. Using default font settings.")
         plt.rcdefaults()
-
-    RESULTS_FILE_PATH = r"C:\\Users\\arthu\\OneDrive - University of Surrey\\Documents\\Surrey\\Semester 2\\Dissertation\\Data\\Final Dataset"
+    RESULTS_FILE_PATH = BASE_DIR  # Use BASE_DIR instead of hardcoded path
     RESULTS_FILE_NAME = 'final_out_of_sample_3_model_results.pkl'
-    OUTPUT_DIRECTORY = "out_of_sample_visualisations_best_by_cum_se"
+    OUTPUT_DIRECTORY = os.path.join(excel_output_dir, "out_of_sample_visualisations")  # Use excel_output_dir
 
     all_results = load_results(RESULTS_FILE_PATH, RESULTS_FILE_NAME)
     if all_results:
@@ -1189,4 +1197,3 @@ if __name__ == "__main__":
     main_visualisations()
 
     print("\nAll tasks completed successfully!")
-
