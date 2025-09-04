@@ -24,7 +24,6 @@ This project relies on the following Python packages for its functionality: **en
 
 | **Package** | **Description** | **PyPI Link** | 
 | ----- | ----- | ----- | 
-| **dieboldmariano** | A package for conducting Diebold-Mariano tests to compare predictive accuracy of forecasting models. | <https://pypi.org/project/dieboldmariano/> |
 | **Matplotlib** | A comprehensive library for creating static, animated, and interactive visualizations in Python. | <https://pypi.org/project/matplotlib/> | 
 | **NumPy** | The fundamental package for scientific computing with Python. | <https://pypi.org/project/numpy/> | 
 | **Pandas** | A powerful data analysis and manipulation library. | <https://pypi.org/project/pandas/> | 
