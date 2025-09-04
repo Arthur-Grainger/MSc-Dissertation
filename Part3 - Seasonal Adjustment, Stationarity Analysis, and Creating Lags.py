@@ -43,7 +43,7 @@ STATIONARITY_EXCEL_REPORT = 'stationarity_and_cointegration_report.xlsx'
 FINAL_DATASET = 'final_dataset_ar_only_lags.xlsx'
 
 # Plot directory
-PLOT_OUTPUT_DIR = 'plots'
+PLOT_OUTPUT_DIR = 'trend_plots'
 
 # Analysis configuration
 NO_SEASONAL_ADJUSTMENT = ['furlough', 'brexit', 'financial_crisis']
