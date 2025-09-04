@@ -91,6 +91,12 @@ def prepare_variables(df):
 
     return target_var, predictors_benchmark, predictors_ar_gt, predictors_all, gt_vars
 
+def ensure_directory_exists(directory_path):
+    """Ensure that a directory exists, create it if it doesn't."""
+    if not os.path.exists(directory_path):
+        os.makedirs(directory_path, exist_ok=True)
+        print(f"Created directory: {directory_path}")
+
 # Multi-Horizon Window Creation
 
 def create_multi_horizon_windows(df, train_length=48, forecast_horizons=[1, 3, 6, 12], step_size=1):
@@ -609,28 +615,6 @@ def main_multi_horizon_analysis(filename, forecast_horizons=[1, 3, 6, 12], train
         traceback.print_exc()
         return None, None
 
-# Execute Multi-Horizon Analysis
-
-if __name__ == "__main__":
-    horizons = [1, 3, 6, 12]
-    
-    print("3-MODEL MULTI-HORIZON UNEMPLOYMENT FORECASTING ANALYSIS")
-    print("="*80)
-    print(f"Testing forecast horizons: {horizons} months")
-    print("Models: Benchmark (AR), AR+GT (LASSO/ElasticNet), Full (LASSO/ElasticNet)")
-    print("="*80)
-    
-    results, summary = main_multi_horizon_analysis(
-        'final_dataset_ar_only_lags.xlsx', 
-        forecast_horizons=horizons,
-        train_length=48
-    )
-    
-    if results:
-        print("\n Analysis completed successfully!")
-    else:
-        print("\n Analysis failed!") 
-
 # %% PART 2: SPREADSHEET CREATION
 
 # Load Results
@@ -825,6 +809,9 @@ def main_spreadsheet(results_file, output_file):
         variable_selection_df = create_variable_selection_summary(horizon_results, metadata)
         print(" Summaries created.")
 
+        # Ensure the output directory exists before trying to change to it
+        ensure_directory_exists(excel_output_dir)
+        
         print(f"Saving analysis to Excel file: '{output_file}'...")
         os.chdir(excel_output_dir) 
         with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
@@ -1139,13 +1126,15 @@ def main_visualisations():
     except RuntimeError:
         print("Warning: LaTeX distribution not found. Using default font settings.")
         plt.rcdefaults()
+    
     RESULTS_FILE_PATH = BASE_DIR  # Use BASE_DIR instead of hardcoded path
     RESULTS_FILE_NAME = 'final_out_of_sample_3_model_results.pkl'
     OUTPUT_DIRECTORY = os.path.join(excel_output_dir, "out_of_sample_visualisations")  # Use excel_output_dir
 
     all_results = load_results(RESULTS_FILE_PATH, RESULTS_FILE_NAME)
     if all_results:
-        os.makedirs(OUTPUT_DIRECTORY, exist_ok=True)
+        # Ensure the output directory exists
+        ensure_directory_exists(OUTPUT_DIRECTORY)
         print(f"\nVisualisations will be saved to: '{os.path.abspath(OUTPUT_DIRECTORY)}'")
 
         available_horizons = sorted(list(all_results.get('horizon_results', {}).keys()))
@@ -1166,7 +1155,7 @@ def main_visualisations():
 
     plt.rcdefaults()
     print("\nVisualisations complete!")
-
+    
 # %% MAIN SEQUENTIAL EXECUTION
 
 if __name__ == "__main__":
