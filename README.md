@@ -4,7 +4,7 @@ This project creates a rolling window analysis paired with shrinkage estimation 
 ## Replicating Results
 ### Directory Setup
 Before running any code, update `BASE_DIR = r"C:\Path\To\Your\Project"` in each script to point to your working directory:
-- **Part 1 (GT Scraping) and Part 2**: use your project path directly (where the `data` folder is located). 
+- **Part 1 (GT Scraping) and Part 2**: use your project path directly (where the `r"C:\Path\To\Your\Project\Data` folder is located). 
 - **Part 3 onwards**: Use `r"C:\Path\To\Your\Project\Data\Final Dataset"` (adding `\Final Dataset` to the base path).
 
 ### Data Requirements
